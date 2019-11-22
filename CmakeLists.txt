@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+PROJECT(photo-fingerprint)
+
+# ImageMagick stuff
+find_package(PkgConfig REQUIRED)
+pkg_search_module(MAGICK REQUIRED Magick++)
+include_directories(${MAGICK_INCLUDEDIR})
+link_directories(${MAGICK_LIBDIR})
+set(CMAKE_C_FLAGS ${MAGICK_CFLAGS})
+
+# ImageMagick requires some settings to be defined at compile time
+add_compile_definitions(MAGICKCORE_QUANTUM_DEPTH=8)
+add_compile_definitions(MAGICKCORE_HDRI_ENABLE=0)
+
+# Boost Filesystem
+find_package(Boost REQUIRED COMPONENTS filesystem)
+include_directories(${Boost_INCLUDE_DIRS})
+
+# Linking
+set(SOURCE main.cpp)
+add_executable(${PROJECT_NAME} ${SOURCE})
+target_link_libraries(${PROJECT_NAME} ${MAGICK_LIBRARIES} ${Boost_LIBRARIES})
