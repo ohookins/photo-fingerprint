@@ -4,30 +4,52 @@
 #include <getopt.h>
 
 void usage() {
-  std::cerr << "photo-fingerprint:" << std::endl;
-  std::cerr << " -s <directory>" << std::endl;
-  std::cerr << " -d <directory>" << std::endl;
+  std::cerr << "photo-fingerprint:" << std::endl << std::endl;
+  std::cerr << " Generate fingerprints:" << std::endl;
+  std::cerr << " -g -s <source image directory> -d <destination directory for fingerprints>" << std::endl;
+  std::cerr << std::endl;
+  std::cerr << " -f -s <fingerprint source dir> -d <image dir to be searched>" << std::endl;
   exit(1);
 }
 
-void traverseDirectory(std::string srcDirectory, std::string dstDirectory) {
+bool isSupportedImage(boost::filesystem::path filename) {
+  auto ext = filename.extension().string();
+
+  // TODO: case correction
+  if (ext == ".jpg" || ext == ".JPG" || ext == ".png" || ext == ".PNG" || ext == ".jpeg" || ext == ".JPEG") {
+    return true;
+  }
+  return false;
+}
+
+bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
   // Directory sanity check
   boost::filesystem::path s(srcDirectory);
   if (!boost::filesystem::is_directory(s)) {
     std::cerr << s << " is not a directory" << std::endl;
-    return;
+    return false;
   }
 
   boost::filesystem::path d(dstDirectory);
   if (!boost::filesystem::is_directory(d)) {
     std::cerr << d << " is not a directory" << std::endl;
-    return;
+    return false;
   }
+
+  return true;
+}
+
+void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
+  boost::filesystem::path s(srcDirectory);
+  boost::filesystem::path d(dstDirectory);
 
   // Iterate through all files in the directory
   for (boost::filesystem::directory_entry& inputFilename : boost::filesystem::directory_iterator(s)) {
     // Don't descend into subdirectories for the moment
     if (boost::filesystem::is_directory(inputFilename)) continue;
+
+    // Filter only known image suffixes
+    if (!isSupportedImage(inputFilename.path())) continue;
 
     std::cout << inputFilename.path() << std::endl;
     auto filename = inputFilename.path().filename();
@@ -43,12 +65,13 @@ void traverseDirectory(std::string srcDirectory, std::string dstDirectory) {
       image.resize("100x100!"); // ! means ignoring proportions
       image.write(outputFilename.string());
     }
-    catch(const Magick::ErrorMissingDelegate& e)
+    catch(const std::exception& e)
     {
-      std::cerr << "skipping " << inputFilename.path() << " " << e.what() << std::endl;
-    }
-    catch(const Magick::ErrorCoder& e)
-    {
+      // Some already seen:
+      // Magick::ErrorCorruptImage
+      // Magick::ErrorMissingDelegate
+      // Magick::ErrorCoder
+      // Magick::WarningImage
       std::cerr << "skipping " << inputFilename.path() << " " << e.what() << std::endl;
     }
   }
@@ -58,8 +81,16 @@ int main(int argc, char** argv) {
   // Option handling
   int ch;
   std::string srcDirectory, dstDirectory;
-  while ((ch = getopt(argc, argv, "d:s:")) != -1) {
+  bool generateMode;
+  bool findDuplicateMode;
+
+  while ((ch = getopt(argc, argv, "gfd:s:")) != -1) {
     switch(ch) {
+      case 'g':
+        generateMode = true;
+        break;
+      case 'f':
+        findDuplicateMode = true;
       case 's':
         srcDirectory = optarg;
         break;
@@ -71,11 +102,19 @@ int main(int argc, char** argv) {
     }
   }
 
+  // Incompatible modes
+  if (generateMode && findDuplicateMode) {
+    usage();
+  }
+
+  // Both modes require two directories
   if (srcDirectory == "" || dstDirectory == "") {
     usage();
   }
 
-  traverseDirectory(srcDirectory, dstDirectory);
+  if (!areDirectoriesValid(srcDirectory, dstDirectory)) return 1;
+
+  if (generateMode) generateFingerprints(srcDirectory, dstDirectory);
 
   return 0;
 }
