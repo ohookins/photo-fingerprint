@@ -2,12 +2,14 @@
 #include <boost/filesystem.hpp>
 #include <Magick++.h>
 #include <getopt.h>
+#include <vector>
 
 void usage() {
   std::cerr << "photo-fingerprint:" << std::endl << std::endl;
   std::cerr << " Generate fingerprints:" << std::endl;
   std::cerr << " -g -s <source image directory> -d <destination directory for fingerprints>" << std::endl;
   std::cerr << std::endl;
+  std::cerr << " Find duplicates:" << std::endl;
   std::cerr << " -f -s <fingerprint source dir> -d <image dir to be searched>" << std::endl;
   exit(1);
 }
@@ -37,6 +39,36 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
   }
 
   return true;
+}
+
+void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
+  boost::filesystem::path s(srcDirectory);
+  boost::filesystem::path d(dstDirectory);
+
+  // Store all fingerprint images in memory for now
+  std::vector<Magick::Image> fingerprints;
+  int loadedCount = 0;
+  std::cout << "Loading fingerprints into memory... " << std::endl;
+
+  // Iterate through all files in the directory
+  for (boost::filesystem::directory_entry& inputFilename : boost::filesystem::directory_iterator(s)) {
+    // Don't descend into subdirectories for the moment
+    if (boost::filesystem::is_directory(inputFilename)) continue;
+
+    // Filter only known image suffixes
+    if (!isSupportedImage(inputFilename.path())) continue;
+
+    auto filename = inputFilename.path().filename();
+    Magick::Image image;
+
+    image.read(inputFilename.path().string());
+    fingerprints.push_back(image);
+    loadedCount++;
+    std::cout << "\r" << loadedCount;
+    std::flush(std::cout);
+  }
+
+  std::cout << "\rDONE" << std::endl;
 }
 
 void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
@@ -91,6 +123,7 @@ int main(int argc, char** argv) {
         break;
       case 'f':
         findDuplicateMode = true;
+        break;
       case 's':
         srcDirectory = optarg;
         break;
@@ -115,6 +148,7 @@ int main(int argc, char** argv) {
   if (!areDirectoriesValid(srcDirectory, dstDirectory)) return 1;
 
   if (generateMode) generateFingerprints(srcDirectory, dstDirectory);
+  if (findDuplicateMode) findDuplicates(srcDirectory, dstDirectory);
 
   return 0;
 }
