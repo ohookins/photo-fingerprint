@@ -4,6 +4,9 @@
 #include <getopt.h>
 #include <vector>
 
+// Store all fingerprint images in memory for now
+std::vector<Magick::Image> fingerprints;
+
 void usage() {
   std::cerr << "photo-fingerprint:" << std::endl << std::endl;
   std::cerr << " Generate fingerprints:" << std::endl;
@@ -41,18 +44,15 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
   return true;
 }
 
-void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
+void loadFingerprints(std::string srcDirectory) {
   boost::filesystem::path s(srcDirectory);
-  boost::filesystem::path d(dstDirectory);
-
-  // Store all fingerprint images in memory for now
-  std::vector<Magick::Image> fingerprints;
   int loadedCount = 0;
+
   std::cout << "Loading fingerprints into memory... " << std::endl;
 
   // Iterate through all files in the directory
   for (boost::filesystem::directory_entry& inputFilename : boost::filesystem::directory_iterator(s)) {
-    // Don't descend into subdirectories for the moment
+    // All fingerprints should be in a single directory, so don't descend further.
     if (boost::filesystem::is_directory(inputFilename)) continue;
 
     // Filter only known image suffixes
@@ -69,6 +69,14 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   }
 
   std::cout << "\rDONE" << std::endl;
+}
+
+void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
+  boost::filesystem::path d(dstDirectory);
+
+  loadFingerprints(srcDirectory);
+
+  
 }
 
 void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
