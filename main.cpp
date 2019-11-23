@@ -4,6 +4,10 @@
 #include <iostream>
 #include <vector>
 
+// Dimension specification for comparison fingerprints.
+// ! means ignoring proportions
+const std::string fingerprintSpec = "100x100!";
+
 // Store all fingerprint images in memory for now
 std::vector<Magick::Image> fingerprints;
 
@@ -83,6 +87,46 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   boost::filesystem::path d(dstDirectory);
 
   loadFingerprints(srcDirectory);
+  int comparedCount;
+  std::cerr << "Comparing images:" << std::endl;
+
+  for (boost::filesystem::directory_entry &inputFilename :
+       boost::filesystem::directory_iterator(d)) {
+    // Only consider images to compare from a single directory for now.
+    if (boost::filesystem::is_directory(inputFilename))
+      continue;
+
+    // Filter only known image suffixes
+    if (!isSupportedImage(inputFilename.path()))
+      continue;
+
+    // Read in one image, resize it to comparison specifications
+    auto filename = inputFilename.path().filename();
+    Magick::Image image;
+    try {
+      image.read(inputFilename.path().string());
+    } catch (const std::exception &e) {
+      // silently skip unreadable file for the moment
+      continue;
+    }
+    image.resize(fingerprintSpec);
+
+    // Compare the image to all of the fingerprints
+    for (std::vector<Magick::Image>::iterator it = fingerprints.begin();
+         it != fingerprints.end(); ++it) {
+      bool imagesAreIdentical = image.compare(*it);
+      if (imagesAreIdentical) {
+        // FIXME: Need to store the fingerprint source filename somewhere and
+        // print it.
+        std::cout << filename.string() << " matches fingerprint of ???"
+                  << std::endl;
+      }
+    }
+
+    comparedCount++;
+    std::cerr << "\r" << comparedCount;
+    std::flush(std::cerr);
+  }
 }
 
 void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
@@ -110,7 +154,7 @@ void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
       outputFilename += filename;
 
       image.read(inputFilename.path().string());
-      image.resize("100x100!"); // ! means ignoring proportions
+      image.resize(fingerprintSpec);
       image.write(outputFilename.string());
     } catch (const std::exception &e) {
       // Some already seen:
