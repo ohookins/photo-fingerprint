@@ -2,8 +2,8 @@
 #include <boost/filesystem.hpp>
 #include <getopt.h>
 #include <iostream>
-#include <vector>
 #include <thread>
+#include <vector>
 
 #include "DirectoryWalker.hpp"
 
@@ -64,8 +64,9 @@ void loadFingerprints(std::string srcDirectory) {
   DirectoryWalker dw(srcDirectory);
   dw.Traverse(true);
   while (true) {
-    boost::filesystem::path* entry = dw.GetNext();
-    if (entry == nullptr) break;
+    boost::filesystem::path *entry = dw.GetNext();
+    if (entry == nullptr)
+      break;
 
     // Filter only known image suffixes
     if (!isSupportedImage(*entry))
@@ -92,8 +93,9 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   DirectoryWalker dw(dstDirectory);
   dw.Traverse(true);
   while (true) {
-    boost::filesystem::path* entry = dw.GetNext();
-    if (entry == nullptr) break;
+    boost::filesystem::path *entry = dw.GetNext();
+    if (entry == nullptr)
+      break;
 
     // Filter only known image suffixes
     if (!isSupportedImage(*entry))
@@ -129,11 +131,12 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   }
 }
 
-void fingerprintWorker(DirectoryWalker* dw, boost::filesystem::path dest) {
+void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
-    boost::filesystem::path* entry = dw->GetNext();
-    if (entry == nullptr) break;
+    boost::filesystem::path *entry = dw->GetNext();
+    if (entry == nullptr)
+      break;
 
     // Filter only known image suffixes
     if (!isSupportedImage(*entry))
@@ -163,10 +166,11 @@ void fingerprintWorker(DirectoryWalker* dw, boost::filesystem::path dest) {
   }
 }
 
-void generateFingerprints(std::string srcDirectory, std::string dstDirectory, int numThreads) {
+void generateFingerprints(std::string srcDirectory, std::string dstDirectory,
+                          int numThreads) {
   boost::filesystem::path d(dstDirectory);
 
-  DirectoryWalker* dw = new DirectoryWalker(srcDirectory);
+  DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
   dw->Traverse(true);
 
   // Spawn threads for the actual fingerprint generation
@@ -220,8 +224,10 @@ int main(int argc, char **argv) {
     usage();
 
   // Check for a sensible number of threads
-  if (numThreads < 1) usage();
-  std::cerr << "Using " << numThreads << " threads of maximum " << std::thread::hardware_concurrency() << std::endl;
+  if (numThreads < 1)
+    usage();
+  std::cerr << "Using " << numThreads << " threads of maximum "
+            << std::thread::hardware_concurrency() << std::endl;
 
   if (!areDirectoriesValid(srcDirectory, dstDirectory))
     return 1;

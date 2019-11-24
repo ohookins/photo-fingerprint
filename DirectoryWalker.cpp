@@ -29,10 +29,10 @@ void DirectoryWalker::Traverse(bool descend = false) {
          boost::filesystem::directory_iterator(currentDir)) {
       std::cerr << "\r" << ++fileCount;
       // Add any found directories to the traversal queue
-      if (boost::filesystem::is_directory(entry))
-      {
-        if (descend) toBeListed.push(entry);
-        
+      if (boost::filesystem::is_directory(entry)) {
+        if (descend)
+          toBeListed.push(entry);
+
         continue;
       }
 
@@ -42,12 +42,13 @@ void DirectoryWalker::Traverse(bool descend = false) {
   std::cerr << std::endl;
 }
 
-boost::filesystem::path* DirectoryWalker::GetNext() {
+boost::filesystem::path *DirectoryWalker::GetNext() {
   const std::lock_guard<std::mutex> lg(Lock); // RAII
 
-  if (Queue.empty()) return nullptr;
+  if (Queue.empty())
+    return nullptr;
 
-  boost::filesystem::path* retval = new boost::filesystem::path(Queue.front());
+  boost::filesystem::path *retval = new boost::filesystem::path(Queue.front());
   Queue.pop();
   return retval;
 }

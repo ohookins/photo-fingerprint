@@ -7,7 +7,7 @@ public:
   DirectoryWalker(std::string directoryName);
 
   void Traverse(bool descend);
-  boost::filesystem::path* GetNext();
+  boost::filesystem::path *GetNext();
 
 private:
   boost::filesystem::path Directory;
