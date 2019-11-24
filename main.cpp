@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <vector>
+#include <thread>
 
 #include "DirectoryWalker.hpp"
 
@@ -128,15 +129,10 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   }
 }
 
-void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
-  boost::filesystem::path d(dstDirectory);
-
-  DirectoryWalker dw(srcDirectory);
-  dw.Traverse(true);
-
+void fingerprintWorker(DirectoryWalker* dw, boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
-    boost::filesystem::path* entry = dw.GetNext();
+    boost::filesystem::path* entry = dw->GetNext();
     if (entry == nullptr) break;
 
     // Filter only known image suffixes
@@ -149,7 +145,7 @@ void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
 
     try {
       // destination filename
-      auto outputFilename = d;
+      auto outputFilename = dest;
       outputFilename += filename;
 
       image.read(entry->string());
@@ -167,12 +163,31 @@ void generateFingerprints(std::string srcDirectory, std::string dstDirectory) {
   }
 }
 
+void generateFingerprints(std::string srcDirectory, std::string dstDirectory, int numThreads) {
+  boost::filesystem::path d(dstDirectory);
+
+  DirectoryWalker* dw = new DirectoryWalker(srcDirectory);
+  dw->Traverse(true);
+
+  // Spawn threads for the actual fingerprint generation
+  std::vector<std::thread> threads;
+  for (int i = 0; i < numThreads; i++) {
+    threads.push_back(std::thread(fingerprintWorker, dw, d));
+  }
+
+  // Wait for them to finish
+  for (int i = 0; i < numThreads; i++) {
+    threads[i].join();
+  }
+}
+
 int main(int argc, char **argv) {
   // Option handling
   int ch;
   std::string srcDirectory, dstDirectory;
   bool generateMode;
   bool findDuplicateMode;
+  int numThreads = std::thread::hardware_concurrency();
 
   while ((ch = getopt(argc, argv, "gfd:s:")) != -1) {
     switch (ch) {
@@ -188,26 +203,31 @@ int main(int argc, char **argv) {
     case 'd':
       dstDirectory = optarg;
       break;
+    case 't':
+      numThreads = atoi(optarg);
+      break;
     default:
       usage();
     }
   }
 
   // Incompatible modes
-  if (generateMode && findDuplicateMode) {
+  if (generateMode && findDuplicateMode)
     usage();
-  }
 
   // Both modes require two directories
-  if (srcDirectory == "" || dstDirectory == "") {
+  if (srcDirectory == "" || dstDirectory == "")
     usage();
-  }
+
+  // Check for a sensible number of threads
+  if (numThreads < 1) usage();
+  std::cerr << "Using " << numThreads << " threads of maximum " << std::thread::hardware_concurrency() << std::endl;
 
   if (!areDirectoriesValid(srcDirectory, dstDirectory))
     return 1;
 
   if (generateMode)
-    generateFingerprints(srcDirectory, dstDirectory);
+    generateFingerprints(srcDirectory, dstDirectory, numThreads);
   if (findDuplicateMode)
     findDuplicates(srcDirectory, dstDirectory);
 
