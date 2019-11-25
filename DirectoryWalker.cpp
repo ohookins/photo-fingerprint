@@ -42,13 +42,13 @@ void DirectoryWalker::Traverse(bool descend = false) {
   std::cerr << std::endl;
 }
 
-boost::filesystem::path *DirectoryWalker::GetNext() {
+std::optional<boost::filesystem::path> DirectoryWalker::GetNext() {
   const std::lock_guard<std::mutex> lg(Lock); // RAII
 
   if (Queue.empty())
-    return nullptr;
+    return {};
 
-  boost::filesystem::path *retval = new boost::filesystem::path(Queue.front());
+  auto retval = Queue.front();
   Queue.pop();
-  return retval;
+  return boost::filesystem::path(retval);
 }

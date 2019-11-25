@@ -2,6 +2,7 @@
 #include <boost/filesystem.hpp>
 #include <getopt.h>
 #include <iostream>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -56,26 +57,26 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
 }
 
 void loadFingerprints(std::string srcDirectory) {
-  int loadedCount = 0;
-
-  std::cout << "Loading fingerprints into memory... " << std::endl;
-
   // Iterate through all files in the directory
   DirectoryWalker dw(srcDirectory);
   dw.Traverse(true);
+
+  std::cout << "Loading fingerprints into memory... " << std::endl;
+  int loadedCount = 0;
+
   while (true) {
-    boost::filesystem::path *entry = dw.GetNext();
-    if (entry == nullptr)
+    std::optional<boost::filesystem::path> entry = dw.GetNext();
+    if (!entry.has_value())
       break;
 
     // Filter only known image suffixes
-    if (!isSupportedImage(*entry))
+    if (!isSupportedImage(entry.value()))
       continue;
 
-    auto filename = entry->filename();
+    auto filename = entry.value().filename();
     Magick::Image image;
 
-    image.read(entry->string());
+    image.read(entry.value().string());
     fingerprints.push_back(image);
     loadedCount++;
     std::cout << "\r" << loadedCount;
@@ -93,19 +94,19 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   DirectoryWalker dw(dstDirectory);
   dw.Traverse(true);
   while (true) {
-    boost::filesystem::path *entry = dw.GetNext();
-    if (entry == nullptr)
+    std::optional<boost::filesystem::path> entry = dw.GetNext();
+    if (!entry.has_value())
       break;
 
     // Filter only known image suffixes
-    if (!isSupportedImage(*entry))
+    if (!isSupportedImage(entry.value()))
       continue;
 
     // Read in one image, resize it to comparison specifications
-    auto filename = entry->filename();
+    auto filename = entry.value().filename();
     Magick::Image image;
     try {
-      image.read(entry->string());
+      image.read(entry.value().string());
     } catch (const std::exception &e) {
       // silently skip unreadable file for the moment
       continue;
@@ -134,16 +135,16 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
 void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
-    boost::filesystem::path *entry = dw->GetNext();
-    if (entry == nullptr)
+    std::optional<boost::filesystem::path> entry = dw->GetNext();
+    if (!entry.has_value())
       break;
 
     // Filter only known image suffixes
-    if (!isSupportedImage(*entry))
+    if (!isSupportedImage(entry.value()))
       continue;
 
-    std::cout << entry->string() << std::endl;
-    auto filename = entry->filename();
+    std::cout << entry.value().string() << std::endl;
+    auto filename = entry.value().filename();
     Magick::Image image;
 
     try {
@@ -151,7 +152,7 @@ void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
       auto outputFilename = dest;
       outputFilename += filename;
 
-      image.read(entry->string());
+      image.read(entry.value().string());
       image.resize(fingerprintSpec);
       image.write(outputFilename.string());
     } catch (const std::exception &e) {
@@ -160,7 +161,7 @@ void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
       // Magick::ErrorMissingDelegate
       // Magick::ErrorCoder
       // Magick::WarningImage
-      std::cerr << "skipping " << entry->string() << " " << e.what()
+      std::cerr << "skipping " << entry.value().string() << " " << e.what()
                 << std::endl;
     }
   }

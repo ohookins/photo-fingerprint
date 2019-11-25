@@ -1,5 +1,6 @@
 #include <boost/filesystem.hpp>
 #include <mutex>
+#include <optional>
 #include <queue>
 
 class DirectoryWalker {
@@ -7,7 +8,7 @@ public:
   DirectoryWalker(std::string directoryName);
 
   void Traverse(bool descend);
-  boost::filesystem::path *GetNext();
+  std::optional<boost::filesystem::path> GetNext();
 
 private:
   boost::filesystem::path Directory;
