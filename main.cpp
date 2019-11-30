@@ -7,13 +7,12 @@
 #include <vector>
 
 #include "DirectoryWalker.hpp"
+#include "FingerprintStore.hpp"
+#include "Util.hpp"
 
 // Dimension specification for comparison fingerprints.
 // ! means ignoring proportions
 const std::string fingerprintSpec = "100x100!";
-
-// Store all fingerprint images in memory for now
-std::vector<Magick::Image> fingerprints;
 
 void usage() {
   std::cerr << "photo-fingerprint:" << std::endl << std::endl;
@@ -26,17 +25,6 @@ void usage() {
   std::cerr << " -f -s <fingerprint source dir> -d <image dir to be searched>"
             << std::endl;
   exit(1);
-}
-
-bool isSupportedImage(boost::filesystem::path filename) {
-  auto ext = filename.extension().string();
-
-  // TODO: case correction
-  if (ext == ".jpg" || ext == ".JPG" || ext == ".png" || ext == ".PNG" ||
-      ext == ".jpeg" || ext == ".JPEG") {
-    return true;
-  }
-  return false;
 }
 
 bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
@@ -56,39 +44,11 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
   return true;
 }
 
-void loadFingerprints(std::string srcDirectory) {
-  // Iterate through all files in the directory
-  DirectoryWalker dw(srcDirectory);
-  dw.Traverse(true);
-
-  std::cout << "Loading fingerprints into memory... " << std::endl;
-  int loadedCount = 0;
-
-  while (true) {
-    std::optional<boost::filesystem::path> entry = dw.GetNext();
-    if (!entry.has_value())
-      break;
-
-    // Filter only known image suffixes
-    if (!isSupportedImage(entry.value()))
-      continue;
-
-    auto filename = entry.value().filename();
-    Magick::Image image;
-
-    image.read(entry.value().string());
-    fingerprints.push_back(image);
-    loadedCount++;
-    std::cout << "\r" << loadedCount;
-    std::flush(std::cout);
-  }
-
-  std::cout << "\rDONE" << std::endl;
-}
-
 void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
-  loadFingerprints(srcDirectory);
-  int comparedCount;
+  FingerprintStore fs;
+  fs.Load(srcDirectory);
+
+  int comparedCount = 0;
   std::cerr << "Comparing images:" << std::endl;
 
   DirectoryWalker dw(dstDirectory);
@@ -99,32 +59,22 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
       break;
 
     // Filter only known image suffixes
-    if (!isSupportedImage(entry.value()))
+    if (!Util::IsSupportedImage(entry.value()))
       continue;
 
     // Read in one image, resize it to comparison specifications
-    auto filename = entry.value().filename();
+    auto filename = entry.value().string();
     Magick::Image image;
     try {
-      image.read(entry.value().string());
+      image.read(filename);
     } catch (const std::exception &e) {
       // silently skip unreadable file for the moment
       continue;
     }
     image.resize(fingerprintSpec);
 
-    // Compare the image to all of the fingerprints
-    for (std::vector<Magick::Image>::iterator it = fingerprints.begin();
-         it != fingerprints.end(); ++it) {
-      image.colorFuzz(0.001);
-      double errorCount = image.compare(*it, Magick::MeanAbsoluteErrorMetric);
-      if (errorCount < 0.01) {
-        // FIXME: Need to store the fingerprint source filename somewhere and
-        // print it.
-        std::cout << filename.string() << " matches fingerprint of ??? "
-                  << errorCount << std::endl;
-      }
-    }
+    // Compare
+    fs.FindMatches(image, filename);
 
     comparedCount++;
     std::cerr << "\r" << comparedCount;
@@ -132,7 +82,8 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   }
 }
 
-void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
+void fingerprintWorker(DirectoryWalker *dw,
+                       const boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
     std::optional<boost::filesystem::path> entry = dw->GetNext();
@@ -140,16 +91,17 @@ void fingerprintWorker(DirectoryWalker *dw, boost::filesystem::path dest) {
       break;
 
     // Filter only known image suffixes
-    if (!isSupportedImage(entry.value()))
+    if (!Util::IsSupportedImage(entry.value()))
       continue;
 
     std::cout << entry.value().string() << std::endl;
-    auto filename = entry.value().filename();
+    auto filename = entry.value().filename().replace_extension(
+        ".tif"); // save fingerprints uncompressed
     Magick::Image image;
 
     try {
       // destination filename
-      auto outputFilename = dest;
+      auto outputFilename = boost::filesystem::path(dest);
       outputFilename += filename;
 
       image.read(entry.value().string());
@@ -194,7 +146,7 @@ int main(int argc, char **argv) {
   bool findDuplicateMode;
   int numThreads = std::thread::hardware_concurrency();
 
-  while ((ch = getopt(argc, argv, "gfd:s:")) != -1) {
+  while ((ch = getopt(argc, argv, "gfd:s:t:")) != -1) {
     switch (ch) {
     case 'g':
       generateMode = true;

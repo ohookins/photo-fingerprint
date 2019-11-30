@@ -1,11 +1,11 @@
 #include "DirectoryWalker.hpp"
 #include <iostream>
 
-DirectoryWalker::DirectoryWalker(std::string directoryName) {
+DirectoryWalker::DirectoryWalker(const std::string directoryName) {
   Directory = boost::filesystem::path(directoryName);
 }
 
-void DirectoryWalker::Traverse(bool descend = false) {
+void DirectoryWalker::Traverse(const bool descend = false) {
   std::cerr << "Retrieving list of files..." << std::endl;
   int fileCount;
   // TODO: Check that the directory is valid

@@ -5,9 +5,9 @@
 
 class DirectoryWalker {
 public:
-  DirectoryWalker(std::string directoryName);
+  DirectoryWalker(const std::string directoryName);
 
-  void Traverse(bool descend);
+  void Traverse(const bool descend);
   std::optional<boost::filesystem::path> GetNext();
 
 private:
