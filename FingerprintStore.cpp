@@ -37,9 +37,8 @@ void FingerprintStore::Load(const std::string srcDirectory) {
   std::cout << "\rDONE" << std::endl;
 }
 
-// Compare the image to all of the fingerprints
-void FingerprintStore::FindMatches(Magick::Image image,
-                                   const std::string filename) {
+void FingerprintStore::FindMatchesForImage(Magick::Image image,
+                                           const std::string filename) {
   for (std::vector<std::pair<Magick::Image, std::string>>::iterator it =
            Fingerprints.begin();
        it != Fingerprints.end(); ++it) {
@@ -53,7 +52,41 @@ void FingerprintStore::FindMatches(Magick::Image image,
   }
 }
 
-// Runner for generating fingerprints in parallel threads
+void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
+  int comparedCount = 0;
+  std::cerr << "Comparing images:" << std::endl;
+
+  DirectoryWalker dw(dstDirectory);
+  dw.Traverse(true);
+  while (true) {
+    std::optional<boost::filesystem::path> entry = dw.GetNext();
+    if (!entry.has_value())
+      break;
+
+    // Filter only known image suffixes
+    if (!Util::IsSupportedImage(entry.value()))
+      continue;
+
+    // Read in one image, resize it to comparison specifications
+    auto filename = entry.value().string();
+    Magick::Image image;
+    try {
+      image.read(filename);
+    } catch (const std::exception &e) {
+      // silently skip unreadable file for the moment
+      continue;
+    }
+    image.resize(FingerprintSpec);
+
+    // Compare
+    FindMatchesForImage(image, filename);
+
+    comparedCount++;
+    std::cerr << "\r" << comparedCount;
+    std::flush(std::cerr);
+  }
+}
+
 void FingerprintStore::Generate(const std::string srcDirectory,
                                 const std::string dstDirectory,
                                 const int numThreads) {

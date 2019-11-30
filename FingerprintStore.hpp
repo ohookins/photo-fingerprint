@@ -5,12 +5,18 @@
 class FingerprintStore {
 public:
   void Load(const std::string srcDirectory);
-  void FindMatches(Magick::Image image, const std::string filename);
 
+  // Find duplicates in a whole directory compared to the fingerprints.
+  void FindDuplicates(const std::string dstDirectory);
+
+  // Runner for generating fingerprints in parallel threads
   static void Generate(const std::string srcDirectory,
                        const std::string dstDirectory, const int numThreads);
 
 private:
+  // Compare a single image to all of the fingerprints
+  void FindMatchesForImage(Magick::Image image, const std::string filename);
+
   static void RunGenerateWorker(DirectoryWalker *dw,
                                 const boost::filesystem::path dest);
 

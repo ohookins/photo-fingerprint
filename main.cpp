@@ -1,18 +1,11 @@
-#include <Magick++.h>
 #include <boost/filesystem.hpp>
 #include <getopt.h>
 #include <iostream>
-#include <optional>
 #include <thread>
-#include <vector>
 
 #include "DirectoryWalker.hpp"
 #include "FingerprintStore.hpp"
 #include "Util.hpp"
-
-// Dimension specification for comparison fingerprints.
-// ! means ignoring proportions
-const std::string fingerprintSpec = "100x100!";
 
 void usage() {
   std::cerr << "photo-fingerprint:" << std::endl << std::endl;
@@ -42,44 +35,6 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
   }
 
   return true;
-}
-
-void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
-  FingerprintStore fs;
-  fs.Load(srcDirectory);
-
-  int comparedCount = 0;
-  std::cerr << "Comparing images:" << std::endl;
-
-  DirectoryWalker dw(dstDirectory);
-  dw.Traverse(true);
-  while (true) {
-    std::optional<boost::filesystem::path> entry = dw.GetNext();
-    if (!entry.has_value())
-      break;
-
-    // Filter only known image suffixes
-    if (!Util::IsSupportedImage(entry.value()))
-      continue;
-
-    // Read in one image, resize it to comparison specifications
-    auto filename = entry.value().string();
-    Magick::Image image;
-    try {
-      image.read(filename);
-    } catch (const std::exception &e) {
-      // silently skip unreadable file for the moment
-      continue;
-    }
-    image.resize(fingerprintSpec);
-
-    // Compare
-    fs.FindMatches(image, filename);
-
-    comparedCount++;
-    std::cerr << "\r" << comparedCount;
-    std::flush(std::cerr);
-  }
 }
 
 int main(int argc, char **argv) {
@@ -131,8 +86,12 @@ int main(int argc, char **argv) {
 
   if (generateMode)
     FingerprintStore::Generate(srcDirectory, dstDirectory, numThreads);
-  if (findDuplicateMode)
-    findDuplicates(srcDirectory, dstDirectory);
+
+  if (findDuplicateMode) {
+    FingerprintStore fs;
+    fs.Load(srcDirectory);
+    fs.FindDuplicates(dstDirectory);
+  }
 
   return 0;
 }
