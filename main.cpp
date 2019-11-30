@@ -82,62 +82,6 @@ void findDuplicates(std::string srcDirectory, std::string dstDirectory) {
   }
 }
 
-void fingerprintWorker(DirectoryWalker *dw,
-                       const boost::filesystem::path dest) {
-  // Iterate through all files in the directory
-  while (true) {
-    std::optional<boost::filesystem::path> entry = dw->GetNext();
-    if (!entry.has_value())
-      break;
-
-    // Filter only known image suffixes
-    if (!Util::IsSupportedImage(entry.value()))
-      continue;
-
-    std::cout << entry.value().string() << std::endl;
-    auto filename = entry.value().filename().replace_extension(
-        ".tif"); // save fingerprints uncompressed
-    Magick::Image image;
-
-    try {
-      // destination filename
-      auto outputFilename = boost::filesystem::path(dest);
-      outputFilename += filename;
-
-      image.read(entry.value().string());
-      image.resize(fingerprintSpec);
-      image.write(outputFilename.string());
-    } catch (const std::exception &e) {
-      // Some already seen:
-      // Magick::ErrorCorruptImage
-      // Magick::ErrorMissingDelegate
-      // Magick::ErrorCoder
-      // Magick::WarningImage
-      std::cerr << "skipping " << entry.value().string() << " " << e.what()
-                << std::endl;
-    }
-  }
-}
-
-void generateFingerprints(std::string srcDirectory, std::string dstDirectory,
-                          int numThreads) {
-  boost::filesystem::path d(dstDirectory);
-
-  DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
-  dw->Traverse(true);
-
-  // Spawn threads for the actual fingerprint generation
-  std::vector<std::thread> threads;
-  for (int i = 0; i < numThreads; i++) {
-    threads.push_back(std::thread(fingerprintWorker, dw, d));
-  }
-
-  // Wait for them to finish
-  for (int i = 0; i < numThreads; i++) {
-    threads[i].join();
-  }
-}
-
 int main(int argc, char **argv) {
   // Option handling
   int ch;
@@ -186,7 +130,7 @@ int main(int argc, char **argv) {
     return 1;
 
   if (generateMode)
-    generateFingerprints(srcDirectory, dstDirectory, numThreads);
+    FingerprintStore::Generate(srcDirectory, dstDirectory, numThreads);
   if (findDuplicateMode)
     findDuplicates(srcDirectory, dstDirectory);
 
