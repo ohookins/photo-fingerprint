@@ -1,7 +1,9 @@
 #include "DirectoryWalker.hpp"
 #include "Util.hpp"
 #include <boost/filesystem.hpp>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <thread>
 
 #include "FingerprintStore.hpp"
@@ -142,4 +144,69 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
                 << std::endl;
     }
   }
+}
+
+void FingerprintStore::Metadata(const std::string srcDirectory,
+                                const int numThreads) {
+  DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
+  dw->Traverse(true);
+
+  // Spawn threads for the actual fingerprint generation
+  std::vector<std::thread> threads;
+  for (int i = 0; i < numThreads; i++) {
+    threads.push_back(std::thread(RunMetadataWorker, dw));
+  }
+
+  // Wait for them to finish
+  for (int i = 0; i < numThreads; i++) {
+    threads[i].join();
+  }
+}
+
+void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
+  // Iterate through all files in the directory
+  while (true) {
+    std::optional<boost::filesystem::path> entry = dw->GetNext();
+    if (!entry.has_value())
+      break;
+
+    // Filter only known image suffixes
+    if (!Util::IsSupportedImage(entry.value()))
+      continue;
+
+    try {
+      Magick::Image image;
+      std::string filename = entry.value().string();
+      image.read(filename);
+      std::string createdAt = image.attribute("exif:DateTime");
+
+      if (createdAt != "") {
+        std::string timestamp = ConvertExifTimestamp(createdAt);
+        std::cout << filename << "\t" << timestamp << std::endl;
+        std::flush(std::cout);
+      }
+    } catch (const std::exception &e) {
+      // Some already seen:
+      // Magick::ErrorCorruptImage
+      // Magick::ErrorMissingDelegate
+      // Magick::ErrorCoder
+      // Magick::WarningImage
+      // Don't bother printing anything as we might run into all kinds of files
+      // we can't read.
+    }
+  }
+}
+
+std::string
+FingerprintStore::ConvertExifTimestamp(const std::string timestamp) {
+  // https://en.cppreference.com/w/cpp/io/manip/get_time
+  // This is basically the example from the docs.
+  std::tm t;
+  std::istringstream ss(timestamp);
+  ss >> std::get_time(&t, "%Y:%m:%d %H:%M:%S");
+
+  // std::put_time requires an output stream to write to
+  std::ostringstream output;
+  output << std::put_time(&t, "%Y-%m-%d %H:%M:%S");
+  return output.str();
 }

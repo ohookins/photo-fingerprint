@@ -43,10 +43,14 @@ int main(int argc, char **argv) {
   std::string srcDirectory, dstDirectory;
   bool generateMode;
   bool findDuplicateMode;
+  bool metadataMode;
   int numThreads = std::thread::hardware_concurrency();
 
-  while ((ch = getopt(argc, argv, "gfd:s:t:")) != -1) {
+  while ((ch = getopt(argc, argv, "mgfd:s:t:")) != -1) {
     switch (ch) {
+    case 'm':
+      metadataMode = true;
+      break;
     case 'g':
       generateMode = true;
       break;
@@ -67,12 +71,13 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Incompatible modes
-  if (generateMode && findDuplicateMode)
+  // Only one mode can be selected
+  if (generateMode + findDuplicateMode + metadataMode != 1)
     usage();
 
-  // Both modes require two directories
-  if (srcDirectory == "" || dstDirectory == "")
+  // Generate and find duplicate modes require two directories
+  if ((generateMode || findDuplicateMode) &&
+      (srcDirectory == "" || dstDirectory == ""))
     usage();
 
   // Check for a sensible number of threads
@@ -81,7 +86,7 @@ int main(int argc, char **argv) {
   std::cerr << "Using " << numThreads << " threads of maximum "
             << std::thread::hardware_concurrency() << std::endl;
 
-  if (!areDirectoriesValid(srcDirectory, dstDirectory))
+  if (!metadataMode && !areDirectoriesValid(srcDirectory, dstDirectory))
     return 1;
 
   if (generateMode)
@@ -91,6 +96,10 @@ int main(int argc, char **argv) {
     FingerprintStore fs;
     fs.Load(srcDirectory);
     fs.FindDuplicates(dstDirectory);
+  }
+
+  if (metadataMode) {
+    FingerprintStore::Metadata(srcDirectory, numThreads);
   }
 
   return 0;
