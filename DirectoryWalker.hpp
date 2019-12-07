@@ -1,7 +1,6 @@
 #include <boost/filesystem.hpp>
-#include <mutex>
+#include <boost/lockfree/queue.hpp>
 #include <optional>
-#include <queue>
 
 class DirectoryWalker {
 public:
@@ -12,6 +11,7 @@ public:
 
 private:
   boost::filesystem::path Directory;
-  std::mutex Lock;
-  std::queue<boost::filesystem::path> Queue;
+  boost::lockfree::queue<boost::filesystem::path *,
+                         boost::lockfree::fixed_sized<false>>
+      Queue;
 };

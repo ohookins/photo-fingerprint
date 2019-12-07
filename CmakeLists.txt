@@ -16,7 +16,11 @@ add_compile_definitions(MAGICKCORE_QUANTUM_DEPTH=8)
 add_compile_definitions(MAGICKCORE_HDRI_ENABLE=0)
 
 # Boost Filesystem
-find_package(Boost REQUIRED COMPONENTS filesystem)
+#set(Boost_DEBUG ON)
+# https://stackoverflow.com/questions/58081084/target-boostlibrary-already-has-an-imported-location-link-errors
+set(Boost_NO_BOOST_CMAKE ON)
+set(Boost_USE_MULTITHREADED ON)
+find_package(Boost 1.71.0 REQUIRED COMPONENTS filesystem)
 include_directories(${Boost_INCLUDE_DIRS})
 
 # Linking

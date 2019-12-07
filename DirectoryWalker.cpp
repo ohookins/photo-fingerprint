@@ -1,22 +1,19 @@
 #include "DirectoryWalker.hpp"
 #include <iostream>
+#include <queue>
 
-DirectoryWalker::DirectoryWalker(const std::string directoryName) {
-  Directory = boost::filesystem::path(directoryName);
-}
+DirectoryWalker::DirectoryWalker(const std::string directoryName)
+    : Queue(0), Directory(directoryName) {}
 
 void DirectoryWalker::Traverse(const bool descend = false) {
   std::cerr << "Retrieving list of files..." << std::endl;
-  int fileCount;
+  int fileCount = 0;
   // TODO: Check that the directory is valid
 
   // Push the starting directory onto the queue so the loop is the same for each
   // directory
   std::queue<boost::filesystem::path> toBeListed;
   toBeListed.push(Directory);
-
-  // Lock while we are putting files on the processing queue
-  const std::lock_guard<std::mutex> lg(Lock);
 
   for (;;) {
     if (toBeListed.empty())
@@ -28,6 +25,8 @@ void DirectoryWalker::Traverse(const bool descend = false) {
     for (boost::filesystem::directory_entry &entry :
          boost::filesystem::directory_iterator(currentDir)) {
       std::cerr << "\r" << ++fileCount;
+      std::flush(std::cerr);
+
       // Add any found directories to the traversal queue
       if (boost::filesystem::is_directory(entry)) {
         if (descend)
@@ -36,19 +35,20 @@ void DirectoryWalker::Traverse(const bool descend = false) {
         continue;
       }
 
-      Queue.push(entry);
+      Queue.push(new boost::filesystem::path(entry));
     }
   }
   std::cerr << std::endl;
 }
 
 std::optional<boost::filesystem::path> DirectoryWalker::GetNext() {
-  const std::lock_guard<std::mutex> lg(Lock); // RAII
+  boost::filesystem::path *entry;
+  bool success = Queue.pop(entry);
 
-  if (Queue.empty())
+  if (!success)
     return {};
 
-  auto retval = Queue.front();
-  Queue.pop();
-  return boost::filesystem::path(retval);
+  auto retval = boost::filesystem::path(*entry);
+  delete entry;
+  return retval;
 }
