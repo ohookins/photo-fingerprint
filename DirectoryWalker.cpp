@@ -6,49 +6,58 @@ DirectoryWalker::DirectoryWalker(const std::string directoryName)
     : Queue(0), Directory(directoryName) {}
 
 void DirectoryWalker::Traverse(const bool descend = false) {
-  std::cerr << "Retrieving list of files..." << std::endl;
-  int fileCount = 0;
-  // TODO: Check that the directory is valid
+  Completed = false;
 
-  // Push the starting directory onto the queue so the loop is the same for each
-  // directory
-  std::queue<boost::filesystem::path> toBeListed;
-  toBeListed.push(Directory);
+  Worker = std::thread([this, descend]() {
+    std::cerr << "Retrieving list of files..." << std::endl;
+    // TODO: Check that the directory is valid
 
-  for (;;) {
-    if (toBeListed.empty())
-      break;
+    // Push the starting directory onto the queue so the loop is the same for
+    // each directory
+    std::queue<boost::filesystem::path> toBeListed;
+    toBeListed.push(Directory);
 
-    boost::filesystem::path currentDir = toBeListed.front();
-    toBeListed.pop();
+    for (;;) {
+      if (toBeListed.empty())
+        break;
 
-    for (boost::filesystem::directory_entry &entry :
-         boost::filesystem::directory_iterator(currentDir)) {
-      std::cerr << "\r" << ++fileCount;
-      std::flush(std::cerr);
+      boost::filesystem::path currentDir = toBeListed.front();
+      toBeListed.pop();
 
-      // Add any found directories to the traversal queue
-      if (boost::filesystem::is_directory(entry)) {
-        if (descend)
-          toBeListed.push(entry);
+      for (boost::filesystem::directory_entry &entry :
+           boost::filesystem::directory_iterator(currentDir)) {
+        // TODO: Print out number of entries walked in an ncurses window?
 
-        continue;
+        // Add any found directories to the traversal queue
+        if (boost::filesystem::is_directory(entry)) {
+          if (descend)
+            toBeListed.push(entry);
+
+          continue;
+        }
+
+        Queue.push(new boost::filesystem::path(entry));
       }
-
-      Queue.push(new boost::filesystem::path(entry));
     }
-  }
-  std::cerr << std::endl;
+    Completed = true;
+  });
 }
 
-std::optional<boost::filesystem::path> DirectoryWalker::GetNext() {
+std::pair<std::optional<boost::filesystem::path>, bool>
+DirectoryWalker::GetNext() {
+  // If the directory traversal has completed, join the thread.
+  // This is probably not a great way to do this.
+  if (Completed && Worker.joinable()) {
+    Worker.join();
+  }
+
   boost::filesystem::path *entry;
   bool success = Queue.pop(entry);
 
   if (!success)
-    return {};
+    return {std::nullopt, Completed};
 
   auto retval = boost::filesystem::path(*entry);
   delete entry;
-  return retval;
+  return {retval, Completed};
 }

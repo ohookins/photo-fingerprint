@@ -9,7 +9,7 @@
 #include "FingerprintStore.hpp"
 
 void FingerprintStore::Load(const std::string srcDirectory) {
-  // Iterate through all files in the directory
+  // Start iteration through all files in the directory
   DirectoryWalker dw(srcDirectory);
   dw.Traverse(true);
 
@@ -17,9 +17,20 @@ void FingerprintStore::Load(const std::string srcDirectory) {
   int loadedCount = 0;
 
   while (true) {
-    std::optional<boost::filesystem::path> entry = dw.GetNext();
-    if (!entry.has_value())
+    auto next = dw.GetNext();
+    std::optional<boost::filesystem::path> entry = next.first;
+    bool completed = next.second;
+
+    // No next value as the directory traversal has completed.
+    if (!entry.has_value() && completed)
       break;
+
+    // We may not have an entry, but if directory traversal hasn't completed, we
+    // should wait for the next one.
+    if (!entry.has_value() && !completed) {
+      sleep(1);
+      continue;
+    }
 
     // Filter only known image suffixes
     if (!Util::IsSupportedImage(entry.value()))
@@ -33,7 +44,7 @@ void FingerprintStore::Load(const std::string srcDirectory) {
     Fingerprints.push_back(std::pair(image, entry.value().stem().string()));
     loadedCount++;
     std::cout << "\r" << loadedCount;
-    std::flush(std::cout);
+    std::cout.flush();
   }
 
   std::cout << "\rDONE" << std::endl;
@@ -58,12 +69,25 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
   int comparedCount = 0;
   std::cerr << "Comparing images:" << std::endl;
 
+  // Start asynchronous traversal of directory.
   DirectoryWalker dw(dstDirectory);
   dw.Traverse(true);
+
   while (true) {
-    std::optional<boost::filesystem::path> entry = dw.GetNext();
-    if (!entry.has_value())
+    auto next = dw.GetNext();
+    std::optional<boost::filesystem::path> entry = next.first;
+    bool completed = next.second;
+
+    // No next value as the directory traversal has completed.
+    if (!entry.has_value() && completed)
       break;
+
+    // We may not have an entry, but if directory traversal hasn't completed, we
+    // should wait for the next one.
+    if (!entry.has_value() && !completed) {
+      sleep(1);
+      continue;
+    }
 
     // Filter only known image suffixes
     if (!Util::IsSupportedImage(entry.value()))
@@ -85,7 +109,7 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
 
     comparedCount++;
     std::cerr << "\r" << comparedCount;
-    std::flush(std::cerr);
+    std::cerr.flush();
   }
 }
 
@@ -94,6 +118,7 @@ void FingerprintStore::Generate(const std::string srcDirectory,
                                 const int numThreads) {
   boost::filesystem::path d(dstDirectory);
 
+  // Start asynchronous traversal of source directory.
   DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
   dw->Traverse(true);
 
@@ -113,9 +138,20 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
                                          const boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
-    std::optional<boost::filesystem::path> entry = dw->GetNext();
-    if (!entry.has_value())
+    auto next = dw->GetNext();
+    std::optional<boost::filesystem::path> entry = next.first;
+    bool completed = next.second;
+
+    // No next value as the directory traversal has completed.
+    if (!entry.has_value() && completed)
       break;
+
+    // We may not have an entry, but if directory traversal hasn't completed, we
+    // should wait for the next one.
+    if (!entry.has_value() && !completed) {
+      sleep(1);
+      continue;
+    }
 
     // Filter only known image suffixes
     if (!Util::IsSupportedImage(entry.value()))
@@ -148,6 +184,7 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
 
 void FingerprintStore::Metadata(const std::string srcDirectory,
                                 const int numThreads) {
+  // Start asynchronous traversal of source directory
   DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
   dw->Traverse(true);
 
@@ -166,9 +203,20 @@ void FingerprintStore::Metadata(const std::string srcDirectory,
 void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
   // Iterate through all files in the directory
   while (true) {
-    std::optional<boost::filesystem::path> entry = dw->GetNext();
-    if (!entry.has_value())
+    auto next = dw->GetNext();
+    std::optional<boost::filesystem::path> entry = next.first;
+    bool completed = next.second;
+
+    // No next value as the directory traversal has completed.
+    if (!entry.has_value() && completed)
       break;
+
+    // We may not have an entry, but if directory traversal hasn't completed, we
+    // should wait for the next one.
+    if (!entry.has_value() && !completed) {
+      sleep(1);
+      continue;
+    }
 
     // Filter only known image suffixes
     if (!Util::IsSupportedImage(entry.value()))
@@ -183,7 +231,7 @@ void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
       if (createdAt != "") {
         std::string timestamp = ConvertExifTimestamp(createdAt);
         std::cout << filename << "\t" << timestamp << std::endl;
-        std::flush(std::cout);
+        std::cout.flush();
       }
     } catch (const std::exception &e) {
       // Some already seen:
