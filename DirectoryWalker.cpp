@@ -9,7 +9,7 @@ void DirectoryWalker::Traverse(const bool descend = false) {
   Completed = false;
 
   Worker = std::thread([this, descend]() {
-    std::cerr << "Retrieving list of files..." << std::endl;
+    std::cerr << "Retrieving list of files...\n";
     // TODO: Check that the directory is valid
 
     // Push the starting directory onto the queue so the loop is the same for
