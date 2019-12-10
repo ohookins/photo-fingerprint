@@ -13,7 +13,7 @@ void FingerprintStore::Load(const std::string srcDirectory) {
   DirectoryWalker dw(srcDirectory);
   dw.Traverse(true);
 
-  std::cout << "Loading fingerprints into memory...\n";
+  std::cout << "Loading fingerprints into memory..." << std::endl;
   int loadedCount = 0;
 
   while (true) {
@@ -44,12 +44,12 @@ void FingerprintStore::Load(const std::string srcDirectory) {
     loadedCount++;
     std::stringstream msg;
     msg << "\r" << loadedCount;
-    std::cout << msg.str();
+    std::cout << msg.str() << std::flush;
   }
 
   // Wait also on the directory traversal thread to complete.
   dw.Finish();
-  std::cout << "\rDONE\n";
+  std::cout << "\rDONE\n" << std::flush;
 }
 
 void FingerprintStore::FindMatchesForImage(Magick::Image image,
@@ -63,14 +63,14 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
     if (distortion < DistortionThreshold) {
       std::stringstream msg;
       msg << filename << " matches fingerprint of " << it->second << std::endl;
-      std::cout << msg.str();
+      std::cout << msg.str() << std::flush;
     }
   }
 }
 
 void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
   int comparedCount = 0;
-  std::cerr << "Comparing images:\n";
+  std::cerr << "Comparing images:" << std::endl;
 
   // Start asynchronous traversal of directory.
   DirectoryWalker dw(dstDirectory);
@@ -113,7 +113,7 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
     comparedCount++;
     std::stringstream msg;
     msg << "\r" << comparedCount;
-    std::cerr << msg.str();
+    std::cerr << msg.str() << std::flush;
   }
 
   // Wait also on the directory traversal thread to complete.
@@ -169,7 +169,7 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
 
     std::stringstream msg;
     msg << entry.value().string() << std::endl;
-    std::cout << msg.str();
+    std::cout << msg.str() << std::flush;
     auto filename = entry.value().filename().replace_extension(
         ".tif"); // save fingerprints uncompressed
     Magick::Image image;
@@ -191,7 +191,7 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
       std::stringstream msg;
       msg << "skipping " << entry.value().string() << " " << e.what()
           << std::endl;
-      std::cerr << msg.str();
+      std::cerr << msg.str() << std::flush;
     }
   }
 }
@@ -250,7 +250,7 @@ void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
         std::string timestamp = ConvertExifTimestamp(createdAt);
         std::stringstream msg;
         msg << filename << "\t" << timestamp << std::endl;
-        std::cout << msg.str();
+        std::cout << msg.str() << std::flush;
       }
     } catch (const std::exception &e) {
       // Some already seen:
