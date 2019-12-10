@@ -45,12 +45,6 @@ void DirectoryWalker::Traverse(const bool descend = false) {
 
 std::pair<std::optional<boost::filesystem::path>, bool>
 DirectoryWalker::GetNext() {
-  // If the directory traversal has completed, join the thread.
-  // This is probably not a great way to do this.
-  if (Completed && Worker.joinable()) {
-    Worker.join();
-  }
-
   boost::filesystem::path *entry;
   bool success = Queue.pop(entry);
 
@@ -60,4 +54,14 @@ DirectoryWalker::GetNext() {
   auto retval = boost::filesystem::path(*entry);
   delete entry;
   return {retval, Completed};
+}
+
+void DirectoryWalker::Finish() {
+  // If the directory traversal has completed, join the thread.
+  // This is probably not a great way to do this. Also because we don't actually
+  // check that the traversal has completed (although if the thread has finished
+  // we can assume it has).
+  if (Worker.joinable()) {
+    Worker.join();
+  }
 }

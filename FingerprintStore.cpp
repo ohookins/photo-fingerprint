@@ -47,6 +47,8 @@ void FingerprintStore::Load(const std::string srcDirectory) {
     std::cout << msg.str();
   }
 
+  // Wait also on the directory traversal thread to complete.
+  dw.Finish();
   std::cout << "\rDONE\n";
 }
 
@@ -113,6 +115,9 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
     msg << "\r" << comparedCount;
     std::cerr << msg.str();
   }
+
+  // Wait also on the directory traversal thread to complete.
+  dw.Finish();
 }
 
 void FingerprintStore::Generate(const std::string srcDirectory,
@@ -134,6 +139,9 @@ void FingerprintStore::Generate(const std::string srcDirectory,
   for (int i = 0; i < numThreads; i++) {
     threads[i].join();
   }
+
+  // Wait also on the directory traversal thread to complete.
+  dw->Finish();
 }
 
 void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
@@ -202,8 +210,12 @@ void FingerprintStore::Metadata(const std::string srcDirectory,
 
   // Wait for them to finish
   for (int i = 0; i < numThreads; i++) {
-    threads[i].join();
+    if (threads[i].joinable())
+      threads[i].join();
   }
+
+  // Wait also on the directory traversal thread to complete.
+  dw->Finish();
 }
 
 void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {

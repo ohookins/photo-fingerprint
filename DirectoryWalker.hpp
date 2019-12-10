@@ -17,6 +17,9 @@ public:
   // has completed or not.
   std::pair<std::optional<boost::filesystem::path>, bool> GetNext();
 
+  // Ensures the asynchronous worker has completed before returning.
+  void Finish();
+
 private:
   boost::filesystem::path Directory;
   boost::lockfree::queue<boost::filesystem::path *,
