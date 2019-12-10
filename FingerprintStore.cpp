@@ -232,7 +232,7 @@ void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
       Magick::Image image;
       std::string filename = entry.value().string();
       image.read(filename);
-      std::string createdAt = image.attribute("exif:DateTime");
+      std::string createdAt = image.attribute("exif:DateTimeOriginal");
 
       if (createdAt != "") {
         std::string timestamp = ConvertExifTimestamp(createdAt);
