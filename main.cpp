@@ -20,15 +20,9 @@ void usage() {
   exit(1);
 }
 
-bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
-  // Directory sanity check
-  boost::filesystem::path s(srcDirectory);
-  if (!boost::filesystem::is_directory(s)) {
-    std::cerr << s << " is not a directory" << std::endl;
-    return false;
-  }
-
-  boost::filesystem::path d(dstDirectory);
+// Directory sanity check
+bool isDirectoryValid(std::string directory) {
+  boost::filesystem::path d(directory);
   if (!boost::filesystem::is_directory(d)) {
     std::cerr << d << " is not a directory" << std::endl;
     return false;
@@ -39,11 +33,11 @@ bool areDirectoriesValid(std::string srcDirectory, std::string dstDirectory) {
 
 int main(int argc, char **argv) {
   // Option handling
-  int ch;
+  int ch = 0;
   std::string srcDirectory, dstDirectory;
-  bool generateMode;
-  bool findDuplicateMode;
-  bool metadataMode;
+  bool generateMode = false;
+  bool findDuplicateMode = false;
+  bool metadataMode = false;
   int numThreads = std::thread::hardware_concurrency();
 
   while ((ch = getopt(argc, argv, "mgfd:s:t:")) != -1) {
@@ -86,7 +80,17 @@ int main(int argc, char **argv) {
   std::cerr << "Using " << numThreads << " threads of maximum "
             << std::thread::hardware_concurrency() << std::endl;
 
-  if (!metadataMode && !areDirectoriesValid(srcDirectory, dstDirectory))
+  // All modes require at least a source directory. Check it first.
+  if (!isDirectoryValid(srcDirectory))
+    return 1;
+
+  if (metadataMode) {
+    FingerprintStore::Metadata(srcDirectory, numThreads);
+    return 0;
+  }
+
+  // Remaining modes require a destination directory
+  if (!isDirectoryValid(dstDirectory))
     return 1;
 
   if (generateMode)
@@ -96,10 +100,6 @@ int main(int argc, char **argv) {
     FingerprintStore fs;
     fs.Load(srcDirectory);
     fs.FindDuplicates(dstDirectory);
-  }
-
-  if (metadataMode) {
-    FingerprintStore::Metadata(srcDirectory, numThreads);
   }
 
   return 0;
