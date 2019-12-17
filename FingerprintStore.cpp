@@ -58,18 +58,30 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
            Fingerprints.begin();
        it != Fingerprints.end(); ++it) {
 
+    // Compare the image to the fingerprint for total number of non-matching
+    // pixels. Distortion will be the pixel count. 100x100 gives a minimum of 0
+    // and max of 10000.
     image.colorFuzz(FuzzFactor);
-    double distortion = image.compare(it->first, Magick::AbsoluteErrorMetric);
-    if (distortion < DistortionThreshold) {
-      std::stringstream msg;
-      msg << filename << " matches fingerprint of " << it->second << std::endl;
+    auto distortion = image.compare(it->first, Magick::AbsoluteErrorMetric);
+
+    std::stringstream msg;
+    msg << filename;
+
+    if (distortion < LowDistortionThreshold) {
+      msg << " is identical to " << it->second << std::endl;
       std::cout << msg.str() << std::flush;
+      continue;
+    }
+
+    if (distortion < HighDistortionThreshold) {
+      msg << " is similar to " << it->second << std::endl;
+      std::cout << msg.str() << std::flush;
+      continue;
     }
   }
 }
 
 void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
-  int comparedCount = 0;
   std::cerr << "Comparing images:" << std::endl;
 
   // Start asynchronous traversal of directory.
@@ -105,15 +117,12 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
       // silently skip unreadable file for the moment
       continue;
     }
+    image.compressType(
+        MagickCore::CompressionType::NoCompression); // may not be needed
     image.resize(FingerprintSpec);
 
     // Compare
     FindMatchesForImage(image, filename);
-
-    comparedCount++;
-    std::stringstream msg;
-    msg << "\r" << comparedCount;
-    std::cerr << msg.str() << std::flush;
   }
 
   // Wait also on the directory traversal thread to complete.
@@ -180,6 +189,11 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
       outputFilename += filename;
 
       image.read(entry.value().string());
+      image.defineValue("quantum", "format",
+                        "floating-point"); // fix HDRI comparison issues
+      image.depth(32);                     // also for the HDRI stuff
+      image.compressType(
+          MagickCore::CompressionType::NoCompression); // may not be needed
       image.resize(FingerprintSpec);
       image.write(outputFilename.string());
     } catch (const std::exception &e) {

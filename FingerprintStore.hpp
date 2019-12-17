@@ -32,8 +32,9 @@ private:
   // Store all fingerprint images in memory for now
   std::vector<std::pair<Magick::Image, std::string>> Fingerprints;
 
-  const double DistortionThreshold = 0.01;
-  const int FuzzFactor = 10000;
+  const double LowDistortionThreshold = 10;   // identical images
+  const double HighDistortionThreshold = 100; // similar images
+  const int FuzzFactor = 0;                   // TODO: tuning
 
   // Dimension specification for comparison fingerprints.
   // ! means ignoring proportions
