@@ -15,7 +15,8 @@ void usage() {
             << std::endl;
   std::cerr << std::endl;
   std::cerr << " Find duplicates:" << std::endl;
-  std::cerr << " -f -s <fingerprint source dir> -d <image dir to be searched>"
+  std::cerr << " -f -s <fingerprint source dir> -d <image dir to be searched> "
+               "-u <fuzz factor>"
             << std::endl;
   exit(1);
 }
@@ -39,8 +40,9 @@ int main(int argc, char **argv) {
   bool findDuplicateMode = false;
   bool metadataMode = false;
   int numThreads = std::thread::hardware_concurrency();
+  int fuzzFactor = 0;
 
-  while ((ch = getopt(argc, argv, "mgfd:s:t:")) != -1) {
+  while ((ch = getopt(argc, argv, "mgfd:s:t:u:")) != -1) {
     switch (ch) {
     case 'm':
       metadataMode = true;
@@ -59,6 +61,9 @@ int main(int argc, char **argv) {
       break;
     case 't':
       numThreads = atoi(optarg);
+      break;
+    case 'u':
+      fuzzFactor = atoi(optarg);
       break;
     default:
       usage();
@@ -99,7 +104,7 @@ int main(int argc, char **argv) {
   if (findDuplicateMode) {
     FingerprintStore fs;
     fs.Load(srcDirectory);
-    fs.FindDuplicates(dstDirectory);
+    fs.FindDuplicates(dstDirectory, fuzzFactor);
   }
 
   return 0;

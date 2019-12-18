@@ -53,7 +53,8 @@ void FingerprintStore::Load(const std::string srcDirectory) {
 }
 
 void FingerprintStore::FindMatchesForImage(Magick::Image image,
-                                           const std::string filename) {
+                                           const std::string filename,
+                                           const int fuzzFactor) {
   for (std::vector<std::pair<Magick::Image, std::string>>::iterator it =
            Fingerprints.begin();
        it != Fingerprints.end(); ++it) {
@@ -61,7 +62,7 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
     // Compare the image to the fingerprint for total number of non-matching
     // pixels. Distortion will be the pixel count. 100x100 gives a minimum of 0
     // and max of 10000.
-    image.colorFuzz(FuzzFactor);
+    image.colorFuzz(fuzzFactor);
     auto distortion = image.compare(it->first, Magick::AbsoluteErrorMetric);
 
     std::stringstream msg;
@@ -81,7 +82,8 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
   }
 }
 
-void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
+void FingerprintStore::FindDuplicates(const std::string dstDirectory,
+                                      const int fuzzFactor) {
   std::cerr << "Comparing images:" << std::endl;
 
   // Start asynchronous traversal of directory.
@@ -122,7 +124,7 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory) {
     image.resize(FingerprintSpec);
 
     // Compare
-    FindMatchesForImage(image, filename);
+    FindMatchesForImage(image, filename, fuzzFactor);
   }
 
   // Wait also on the directory traversal thread to complete.

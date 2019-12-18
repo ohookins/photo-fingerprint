@@ -6,7 +6,7 @@ public:
   void Load(const std::string srcDirectory);
 
   // Find duplicates in a whole directory compared to the fingerprints.
-  void FindDuplicates(const std::string dstDirectory);
+  void FindDuplicates(const std::string dstDirectory, const int fuzzFactor);
 
   // Runner for generating fingerprints in parallel threads
   static void Generate(const std::string srcDirectory,
@@ -18,7 +18,8 @@ public:
 
 private:
   // Compare a single image to all of the fingerprints
-  void FindMatchesForImage(Magick::Image image, const std::string filename);
+  void FindMatchesForImage(Magick::Image image, const std::string filename,
+                           const int fuzzFactor);
 
   static void RunGenerateWorker(DirectoryWalker *dw,
                                 const boost::filesystem::path dest);
@@ -34,7 +35,6 @@ private:
 
   const double LowDistortionThreshold = 10;   // identical images
   const double HighDistortionThreshold = 100; // similar images
-  const int FuzzFactor = 0;                   // TODO: tuning
 
   // Dimension specification for comparison fingerprints.
   // ! means ignoring proportions
