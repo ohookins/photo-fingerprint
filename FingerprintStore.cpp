@@ -8,9 +8,12 @@
 
 #include "FingerprintStore.hpp"
 
-void FingerprintStore::Load(const std::string srcDirectory) {
+FingerprintStore::FingerprintStore(std::string srcDirectory)
+    : SrcDirectory(srcDirectory){};
+
+void FingerprintStore::Load() {
   // Start iteration through all files in the directory
-  DirectoryWalker dw(srcDirectory);
+  DirectoryWalker dw(SrcDirectory);
   dw.Traverse(true);
 
   std::cout << "Loading fingerprints into memory..." << std::endl;
@@ -131,19 +134,19 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory,
   dw.Finish();
 }
 
-void FingerprintStore::Generate(const std::string srcDirectory,
-                                const std::string dstDirectory,
+void FingerprintStore::Generate(const std::string dstDirectory,
                                 const int numThreads) {
   boost::filesystem::path d(dstDirectory);
 
   // Start asynchronous traversal of source directory.
-  DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
+  DirectoryWalker *dw = new DirectoryWalker(SrcDirectory);
   dw->Traverse(true);
 
   // Spawn threads for the actual fingerprint generation
   std::vector<std::thread> threads;
   for (int i = 0; i < numThreads; i++) {
-    threads.push_back(std::thread(RunGenerateWorker, dw, d));
+    threads.push_back(
+        std::thread([=] { RunGenerateWorker(dw, d); })); // filthy lambdas
   }
 
   // Wait for them to finish
@@ -212,16 +215,15 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
   }
 }
 
-void FingerprintStore::Metadata(const std::string srcDirectory,
-                                const int numThreads) {
+void FingerprintStore::Metadata(const int numThreads) {
   // Start asynchronous traversal of source directory
-  DirectoryWalker *dw = new DirectoryWalker(srcDirectory);
+  DirectoryWalker *dw = new DirectoryWalker(SrcDirectory);
   dw->Traverse(true);
 
   // Spawn threads for the actual fingerprint generation
   std::vector<std::thread> threads;
   for (int i = 0; i < numThreads; i++) {
-    threads.push_back(std::thread(RunMetadataWorker, dw));
+    threads.push_back(std::thread([=] { RunMetadataWorker(dw); }));
   }
 
   // Wait for them to finish

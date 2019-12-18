@@ -89,8 +89,10 @@ int main(int argc, char **argv) {
   if (!isDirectoryValid(srcDirectory))
     return 1;
 
+  FingerprintStore fs(srcDirectory);
+
   if (metadataMode) {
-    FingerprintStore::Metadata(srcDirectory, numThreads);
+    fs.Metadata(numThreads);
     return 0;
   }
 
@@ -99,11 +101,10 @@ int main(int argc, char **argv) {
     return 1;
 
   if (generateMode)
-    FingerprintStore::Generate(srcDirectory, dstDirectory, numThreads);
+    fs.Generate(dstDirectory, numThreads);
 
   if (findDuplicateMode) {
-    FingerprintStore fs;
-    fs.Load(srcDirectory);
+    fs.Load();
     fs.FindDuplicates(dstDirectory, fuzzFactor);
   }
 
