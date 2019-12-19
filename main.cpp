@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
   if (findDuplicateMode) {
     fs.Load();
-    fs.FindDuplicates(dstDirectory, fuzzFactor);
+    fs.FindDuplicates(dstDirectory, fuzzFactor, numThreads);
   }
 
   return 0;

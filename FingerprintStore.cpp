@@ -86,15 +86,35 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
 }
 
 void FingerprintStore::FindDuplicates(const std::string dstDirectory,
-                                      const int fuzzFactor) {
+                                      const int fuzzFactor,
+                                      const int numThreads) {
   std::cerr << "Comparing images:" << std::endl;
 
   // Start asynchronous traversal of directory.
-  DirectoryWalker dw(dstDirectory);
-  dw.Traverse(true);
+  DirectoryWalker *dw = new DirectoryWalker(dstDirectory);
+  dw->Traverse(true);
 
+  // Spawn threads for the actual fingerprint generation
+  std::vector<std::thread> threads;
+  for (int i = 0; i < numThreads; i++) {
+    threads.push_back(std::thread(
+        [=] { RunDuplicateWorker(dw, fuzzFactor); })); // filthy lambdas
+  }
+
+  // Wait for them to finish
+  for (int i = 0; i < numThreads; i++) {
+    threads[i].join();
+  }
+
+  // Wait also on the directory traversal thread to complete.
+  dw->Finish();
+  delete dw;
+}
+
+void FingerprintStore::RunDuplicateWorker(DirectoryWalker *dw,
+                                          const int fuzzFactor) {
   while (true) {
-    auto next = dw.GetNext();
+    auto next = dw->GetNext();
     std::optional<boost::filesystem::path> entry = next.first;
     bool completed = next.second;
 
@@ -129,9 +149,6 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory,
     // Compare
     FindMatchesForImage(image, filename, fuzzFactor);
   }
-
-  // Wait also on the directory traversal thread to complete.
-  dw.Finish();
 }
 
 void FingerprintStore::Generate(const std::string dstDirectory,
@@ -156,6 +173,7 @@ void FingerprintStore::Generate(const std::string dstDirectory,
 
   // Wait also on the directory traversal thread to complete.
   dw->Finish();
+  delete dw;
 }
 
 void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
@@ -234,6 +252,7 @@ void FingerprintStore::Metadata(const int numThreads) {
 
   // Wait also on the directory traversal thread to complete.
   dw->Finish();
+  delete dw;
 }
 
 void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {

@@ -1,6 +1,14 @@
 #include "Magick++.h"
 #include <vector>
 
+enum WorkerType { GenerateWorker, MetadataWorker, FingerprintWorker };
+
+struct WorkerOptions {
+  const DirectoryWalker *DW;
+  const boost::filesystem::path Destination;
+  const WorkerType WType;
+};
+
 class FingerprintStore {
 public:
   FingerprintStore(std::string srcDirectory);
@@ -8,12 +16,13 @@ public:
   void Load();
 
   // Find duplicates in a whole directory compared to the fingerprints.
-  void FindDuplicates(const std::string dstDirectory, const int fuzzFactor);
+  void FindDuplicates(const std::string dstDirectory, const int fuzzFactor,
+                      const int numThreads);
 
-  // Runner for generating fingerprints in parallel threads
+  // Entrypoint for generating fingerprints in parallel threads
   void Generate(const std::string dstDirectory, const int numThreads);
 
-  // Runner for outputting metadata in parallel threads.
+  // Entrypoint for outputting metadata in parallel threads.
   // Currently the only metadata is the created date of the image.
   void Metadata(const int numThreads);
 
@@ -21,6 +30,10 @@ private:
   // Compare a single image to all of the fingerprints
   void FindMatchesForImage(Magick::Image image, const std::string filename,
                            const int fuzzFactor);
+
+  void RunWorker(const WorkerOptions options);
+
+  void RunDuplicateWorker(DirectoryWalker *dw, const int fuzzFactor);
 
   void RunGenerateWorker(DirectoryWalker *dw,
                          const boost::filesystem::path dest);
