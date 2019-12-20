@@ -4,9 +4,10 @@
 enum WorkerType { GenerateWorker, MetadataWorker, FingerprintWorker };
 
 struct WorkerOptions {
-  const DirectoryWalker *DW;
-  const boost::filesystem::path Destination;
-  const WorkerType WType;
+  int NumThreads;
+  int FuzzFactor;
+  std::string DstDirectory;
+  WorkerType WType;
 };
 
 class FingerprintStore {
@@ -15,30 +16,23 @@ public:
 
   void Load();
 
-  // Find duplicates in a whole directory compared to the fingerprints.
-  void FindDuplicates(const std::string dstDirectory, const int fuzzFactor,
-                      const int numThreads);
-
-  // Entrypoint for generating fingerprints in parallel threads
-  void Generate(const std::string dstDirectory, const int numThreads);
-
-  // Entrypoint for outputting metadata in parallel threads.
-  // Currently the only metadata is the created date of the image.
-  void Metadata(const int numThreads);
+  // Run a given task in multiple threads.
+  void RunWorkers(const WorkerOptions options);
 
 private:
   // Compare a single image to all of the fingerprints
   void FindMatchesForImage(Magick::Image image, const std::string filename,
                            const int fuzzFactor);
 
-  void RunWorker(const WorkerOptions options);
+  // Find duplicates in a whole directory compared to the fingerprints.
+  void FindDuplicates(DirectoryWalker *dw, const int fuzzFactor);
 
-  void RunDuplicateWorker(DirectoryWalker *dw, const int fuzzFactor);
+  // Entrypoint for generating fingerprints in parallel threads
+  void Generate(DirectoryWalker *dw, const std::string dstDirectory);
 
-  void RunGenerateWorker(DirectoryWalker *dw,
-                         const boost::filesystem::path dest);
-
-  void RunMetadataWorker(DirectoryWalker *dw);
+  // Worker for outputting metadata.
+  // Currently the only metadata is the created date of the image.
+  void ExtractMetadata(DirectoryWalker *dw);
 
   // Converts a timestamp like "2011:07:09 20:01:28" into a standard format
   // (hyphens between date parts).

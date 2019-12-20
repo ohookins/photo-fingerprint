@@ -85,25 +85,41 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
   }
 }
 
-void FingerprintStore::FindDuplicates(const std::string dstDirectory,
-                                      const int fuzzFactor,
-                                      const int numThreads) {
-  std::cerr << "Comparing images:" << std::endl;
-
+void FingerprintStore::RunWorkers(const WorkerOptions options) {
   // Start asynchronous traversal of directory.
-  DirectoryWalker *dw = new DirectoryWalker(dstDirectory);
+  DirectoryWalker *dw;
+  if (options.WType == GenerateWorker) {
+    dw = new DirectoryWalker(SrcDirectory);
+  } else {
+    dw = new DirectoryWalker(options.DstDirectory);
+  }
   dw->Traverse(true);
 
   // Spawn threads for the actual fingerprint generation
   std::vector<std::thread> threads;
-  for (int i = 0; i < numThreads; i++) {
-    threads.push_back(std::thread(
-        [=] { RunDuplicateWorker(dw, fuzzFactor); })); // filthy lambdas
+  for (int i = 0; i < options.NumThreads; i++) {
+    std::thread thread;
+
+    // Use the power of filthy lambdas to start the things.
+    switch (options.WType) {
+    case GenerateWorker:
+      thread = std::thread([=] { Generate(dw, options.DstDirectory); });
+      break;
+    case MetadataWorker:
+      thread = std::thread([=] { ExtractMetadata(dw); });
+      break;
+    case FingerprintWorker:
+      thread = std::thread([=] { FindDuplicates(dw, options.FuzzFactor); });
+      break;
+    }
+
+    threads.push_back(std::move(thread));
   }
 
   // Wait for them to finish
-  for (int i = 0; i < numThreads; i++) {
-    threads[i].join();
+  for (int i = 0; i < options.NumThreads; i++) {
+    if (threads[i].joinable())
+      threads[i].join();
   }
 
   // Wait also on the directory traversal thread to complete.
@@ -111,8 +127,8 @@ void FingerprintStore::FindDuplicates(const std::string dstDirectory,
   delete dw;
 }
 
-void FingerprintStore::RunDuplicateWorker(DirectoryWalker *dw,
-                                          const int fuzzFactor) {
+void FingerprintStore::FindDuplicates(DirectoryWalker *dw,
+                                      const int fuzzFactor) {
   while (true) {
     auto next = dw->GetNext();
     std::optional<boost::filesystem::path> entry = next.first;
@@ -151,33 +167,10 @@ void FingerprintStore::RunDuplicateWorker(DirectoryWalker *dw,
   }
 }
 
-void FingerprintStore::Generate(const std::string dstDirectory,
-                                const int numThreads) {
-  boost::filesystem::path d(dstDirectory);
+void FingerprintStore::Generate(DirectoryWalker *dw,
+                                const std::string dstDirectory) {
+  boost::filesystem::path dest(dstDirectory);
 
-  // Start asynchronous traversal of source directory.
-  DirectoryWalker *dw = new DirectoryWalker(SrcDirectory);
-  dw->Traverse(true);
-
-  // Spawn threads for the actual fingerprint generation
-  std::vector<std::thread> threads;
-  for (int i = 0; i < numThreads; i++) {
-    threads.push_back(
-        std::thread([=] { RunGenerateWorker(dw, d); })); // filthy lambdas
-  }
-
-  // Wait for them to finish
-  for (int i = 0; i < numThreads; i++) {
-    threads[i].join();
-  }
-
-  // Wait also on the directory traversal thread to complete.
-  dw->Finish();
-  delete dw;
-}
-
-void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
-                                         const boost::filesystem::path dest) {
   // Iterate through all files in the directory
   while (true) {
     auto next = dw->GetNext();
@@ -233,29 +226,7 @@ void FingerprintStore::RunGenerateWorker(DirectoryWalker *dw,
   }
 }
 
-void FingerprintStore::Metadata(const int numThreads) {
-  // Start asynchronous traversal of source directory
-  DirectoryWalker *dw = new DirectoryWalker(SrcDirectory);
-  dw->Traverse(true);
-
-  // Spawn threads for the actual fingerprint generation
-  std::vector<std::thread> threads;
-  for (int i = 0; i < numThreads; i++) {
-    threads.push_back(std::thread([=] { RunMetadataWorker(dw); }));
-  }
-
-  // Wait for them to finish
-  for (int i = 0; i < numThreads; i++) {
-    if (threads[i].joinable())
-      threads[i].join();
-  }
-
-  // Wait also on the directory traversal thread to complete.
-  dw->Finish();
-  delete dw;
-}
-
-void FingerprintStore::RunMetadataWorker(DirectoryWalker *dw) {
+void FingerprintStore::ExtractMetadata(DirectoryWalker *dw) {
   // Iterate through all files in the directory
   while (true) {
     auto next = dw->GetNext();

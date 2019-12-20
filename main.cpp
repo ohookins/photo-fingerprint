@@ -90,9 +90,11 @@ int main(int argc, char **argv) {
     return 1;
 
   FingerprintStore fs(srcDirectory);
+  WorkerOptions options = {numThreads, fuzzFactor, dstDirectory};
 
   if (metadataMode) {
-    fs.Metadata(numThreads);
+    options.WType = MetadataWorker;
+    fs.RunWorkers(options);
     return 0;
   }
 
@@ -100,12 +102,15 @@ int main(int argc, char **argv) {
   if (!isDirectoryValid(dstDirectory))
     return 1;
 
-  if (generateMode)
-    fs.Generate(dstDirectory, numThreads);
+  if (generateMode) {
+    options.WType = GenerateWorker;
+    fs.RunWorkers(options);
+  }
 
   if (findDuplicateMode) {
+    options.WType = FingerprintWorker;
     fs.Load();
-    fs.FindDuplicates(dstDirectory, fuzzFactor, numThreads);
+    fs.RunWorkers(options);
   }
 
   return 0;
