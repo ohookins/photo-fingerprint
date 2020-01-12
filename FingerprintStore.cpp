@@ -71,14 +71,21 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
     std::stringstream msg;
     msg << filename;
 
+    // Pull the fingerprint match name from the fingerprint metadata if
+    // available.
+    std::string fingerprintName = it->first.attribute("comment");
+    if (fingerprintName == "") {
+      fingerprintName = it->second;
+    }
+
     if (distortion < LowDistortionThreshold) {
-      msg << " is identical to " << it->second << std::endl;
+      msg << " is identical to " << fingerprintName << std::endl;
       std::cout << msg.str() << std::flush;
       continue;
     }
 
     if (distortion < HighDistortionThreshold) {
-      msg << " is similar to " << it->second << std::endl;
+      msg << " is similar to " << fingerprintName << std::endl;
       std::cout << msg.str() << std::flush;
       continue;
     }
@@ -211,6 +218,7 @@ void FingerprintStore::Generate(DirectoryWalker *dw,
       image.compressType(
           MagickCore::CompressionType::NoCompression); // may not be needed
       image.resize(FingerprintSpec);
+      image.attribute("comment", entry.value().string());
       image.write(outputFilename.string());
     } catch (const std::exception &e) {
       // Some already seen:

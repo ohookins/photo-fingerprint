@@ -6,7 +6,7 @@ bool Util::IsSupportedImage(const boost::filesystem::path filename) {
   // TODO: case correction
   if (ext == ".jpg" || ext == ".JPG" || ext == ".png" || ext == ".PNG" ||
       ext == ".jpeg" || ext == ".JPEG" || ext == ".tif" || ext == ".tiff" ||
-      ext == ".TIF" || ext == ".TIFF") {
+      ext == ".TIF" || ext == ".TIFF" || ext == ".cr2" || ext == ".CR2") {
     return true;
   }
   return false;
