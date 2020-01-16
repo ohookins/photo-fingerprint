@@ -66,7 +66,8 @@ void FingerprintStore::FindMatchesForImage(Magick::Image image,
     // pixels. Distortion will be the pixel count. 100x100 gives a minimum of 0
     // and max of 10000.
     image.colorFuzz(fuzzFactor);
-    auto distortion = image.compare(it->first, Magick::RootMeanSquaredErrorMetric);
+    auto distortion =
+        image.compare(it->first, Magick::RootMeanSquaredErrorMetric);
 
     std::stringstream msg;
     msg << filename;

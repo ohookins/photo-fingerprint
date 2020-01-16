@@ -44,7 +44,7 @@ private:
   // Store all fingerprint images in memory for now
   std::vector<std::pair<Magick::Image, std::string>> Fingerprints;
 
-  const double LowDistortionThreshold = 0.01;   // identical images
+  const double LowDistortionThreshold = 0.01;  // identical images
   const double HighDistortionThreshold = 0.02; // similar images
 
   // Dimension specification for comparison fingerprints.
