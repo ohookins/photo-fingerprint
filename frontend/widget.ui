@@ -44,7 +44,7 @@
         <string>Delete Left</string>
        </property>
        <property name="shortcut">
-        <string notr="true">Left</string>
+        <string>Left</string>
        </property>
       </widget>
      </item>
@@ -76,7 +76,7 @@
         <string>Delete Right</string>
        </property>
        <property name="shortcut">
-        <string notr="true">Right</string>
+        <string>Right</string>
        </property>
       </widget>
      </item>
@@ -102,8 +102,18 @@
        <property name="focusPolicy">
         <enum>Qt::NoFocus</enum>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
        <property name="readOnly">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Filename</string>
        </property>
       </widget>
      </item>
@@ -126,8 +136,18 @@
        <property name="focusPolicy">
         <enum>Qt::NoFocus</enum>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
        <property name="readOnly">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Size</string>
        </property>
       </widget>
      </item>
@@ -150,8 +170,18 @@
        <property name="focusPolicy">
         <enum>Qt::NoFocus</enum>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
        <property name="readOnly">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Dimensions</string>
        </property>
       </widget>
      </item>

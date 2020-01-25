@@ -72,33 +72,36 @@ void Widget::parseDuplicateFile(QString filename)
 
 void Widget::loadNextPair()
 {
-    qDebug() << "start loadNextPair() " << QTime::currentTime();
+    QTime t;
+    t.start();
+    ui->statusLabel->setText("Loading images...");
+
     auto imagePair = jsonDuplicateArray.at(completedComparisons).toArray();
     QString leftPath = imagePair.at(0).toString();
     QString rightPath = imagePair.at(1).toString();
 
     // Try to load the images and hope they are understandable by Qt
-    ui->statusLabel->setText("Loading left image...");
     QPixmap leftImage(leftPath);
-    ui->statusLabel->setText("Loading right image...");
     QPixmap rightImage(rightPath);
 
     // Display some metadata about the files to help in delete selection
     displayPhotoMetadata(leftPath, leftImage, rightPath, rightImage);
 
-    qDebug() << "Images: " << leftPath << " <=> " << rightPath << " at " << QTime::currentTime();
+    qDebug() << "Images: " << leftPath << " <=> " << rightPath;
 
     ui->leftImage->setPixmap(leftImage);
     ui->leftImage->setScaledContents(true);
     ui->rightImage->setPixmap(rightImage);
     ui->rightImage->setScaledContents(true);
 
-    qDebug() << "Finished loading images " << QTime::currentTime();
+    // Calculate loading duration.
+    QString loadDuration = QString("Loaded images in %1 ms").arg(t.elapsed());
+    qDebug() << loadDuration;
 
     // Increment the completed count and progress bar
     completedComparisons++;
     ui->progressBar->setValue(completedComparisons);
-    ui->statusLabel->setText("Awaiting user action.");
+    ui->statusLabel->setText(QString("%1. Comparison %2/%3.").arg(loadDuration).arg(completedComparisons).arg(totalComparisons));
 }
 
 void Widget::displayPhotoMetadata(QString leftFilename, QPixmap left, QString rightFilename, QPixmap right)
@@ -118,24 +121,18 @@ void Widget::displayPhotoMetadata(QString leftFilename, QPixmap left, QString ri
 
 void Widget::on_skipButton_clicked()
 {
-    qDebug() << "Image index " << completedComparisons << " skipped...";
+    qDebug() << "Image index " << QString::number(completedComparisons-1) << " skipped...";
     loadNextPair();
 }
 
 void Widget::on_deleteLeftButton_clicked()
 {
-    auto imagePair = jsonDuplicateArray.at(completedComparisons).toArray();
-    QString leftPath = imagePair.at(0).toString();
-
-    qDebug() << "Requested to delete " << leftPath;
+    qDebug() << "Requested to delete " << ui->leftFilenameLineEdit->text();
     loadNextPair();
 }
 
 void Widget::on_deleteRightButton_clicked()
 {
-    auto imagePair = jsonDuplicateArray.at(completedComparisons).toArray();
-    QString rightPath = imagePair.at(1).toString();
-
-    qDebug() << "Requested to delete " << rightPath;
+    qDebug() << "Requested to delete " << ui->rightFilenameLineEdit->text();
     loadNextPair();
 }
