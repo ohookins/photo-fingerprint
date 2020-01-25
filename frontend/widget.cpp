@@ -76,9 +76,25 @@ void Widget::loadNextPair()
     t.start();
     ui->statusLabel->setText("Loading images...");
 
-    auto imagePair = jsonDuplicateArray.at(completedComparisons).toArray();
-    QString leftPath = imagePair.at(0).toString();
-    QString rightPath = imagePair.at(1).toString();
+    // Loop until we find a pair of images that exists (in case I've already deleted one).
+    QString leftPath, rightPath;
+    while(true) {
+        QJsonArray imagePair = jsonDuplicateArray.at(completedComparisons).toArray();
+        leftPath = imagePair.at(0).toString();
+        rightPath = imagePair.at(1).toString();
+
+        // If both files exist, proceed to loading them into the UI.
+        auto leftExists = QFile::exists(leftPath);
+        auto rightExists = QFile::exists(rightPath);
+        if (leftExists && rightExists) {
+            break;
+        }
+
+        // Update comparison counter and progress bar and go to the
+        // next pair of images.
+        completedComparisons++;
+        ui->progressBar->setValue(completedComparisons);
+    }
 
     // Try to load the images and hope they are understandable by Qt
     QPixmap leftImage(leftPath);
@@ -127,12 +143,20 @@ void Widget::on_skipButton_clicked()
 
 void Widget::on_deleteLeftButton_clicked()
 {
-    qDebug() << "Requested to delete " << ui->leftFilenameLineEdit->text();
+    // use the filename from the metadata LineEdit
+    QString filename = ui->leftFilenameLineEdit->text();
+
+    qDebug() << "Requested to delete " << filename;
+    QFile::remove(filename);
     loadNextPair();
 }
 
 void Widget::on_deleteRightButton_clicked()
 {
-    qDebug() << "Requested to delete " << ui->rightFilenameLineEdit->text();
+    // use the filename from the metadata LineEdit
+    QString filename = ui->rightFilenameLineEdit->text();
+
+    qDebug() << "Requested to delete " << filename;
+    QFile::remove(filename);
     loadNextPair();
 }
