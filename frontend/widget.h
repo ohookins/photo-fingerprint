@@ -2,6 +2,7 @@
 #define WIDGET_H
 
 #include <QWidget>
+#include <QJsonArray>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -18,7 +19,21 @@ public:
 private slots:
     void on_selectFileButton_clicked();
 
+    void on_skipButton_clicked();
+
+    void on_deleteLeftButton_clicked();
+
+    void on_deleteRightButton_clicked();
+
 private:
+    void parseDuplicateFile(QString filename);
+    void loadNextPair();
+    void displayPhotoMetadata(QString leftFilename, QPixmap left, QString rightFilename, QPixmap right);
+
     Ui::Widget *ui;
+
+    QJsonArray jsonDuplicateArray;
+    int completedComparisons = 0;
+    int totalComparisons = 0;
 };
 #endif // WIDGET_H

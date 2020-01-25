@@ -37,8 +37,14 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Delete Left</string>
+       </property>
+       <property name="shortcut">
+        <string notr="true">Left</string>
        </property>
       </widget>
      </item>
@@ -47,8 +53,14 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Skip</string>
+       </property>
+       <property name="shortcut">
+        <string>Space</string>
        </property>
       </widget>
      </item>
@@ -57,8 +69,14 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Delete Right</string>
+       </property>
+       <property name="shortcut">
+        <string notr="true">Right</string>
        </property>
       </widget>
      </item>
@@ -78,6 +96,78 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QLineEdit" name="leftFilenameLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="rightFilenameLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <item>
+      <widget class="QLineEdit" name="leftSizeLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="rightSizeLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_7">
+     <item>
+      <widget class="QLineEdit" name="leftResolutionLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="rightResolutionLineEdit">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,0">
      <property name="spacing">
       <number>-1</number>
@@ -91,10 +181,16 @@
      <item>
       <widget class="QLabel" name="leftImage">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>600</width>
+         <height>350</height>
+        </size>
        </property>
        <property name="text">
         <string/>
@@ -119,6 +215,18 @@
      </item>
      <item>
       <widget class="QLabel" name="rightImage">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>600</width>
+         <height>350</height>
+        </size>
+       </property>
        <property name="text">
         <string/>
        </property>
@@ -139,8 +247,14 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="text">
         <string>Select File</string>
+       </property>
+       <property name="shortcut">
+        <string>Ctrl+O</string>
        </property>
       </widget>
      </item>
