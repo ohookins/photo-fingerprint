@@ -4,6 +4,9 @@
 #include <QWidget>
 #include <QJsonArray>
 
+// forward declarations
+class QPixmap;
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -29,6 +32,10 @@ private:
     void parseDuplicateFile(QString filename);
     void loadNextPair();
     void displayPhotoMetadata(QString leftFilename, QPixmap left, QString rightFilename, QPixmap right);
+
+    // Loads an image from a given path and returns it
+    // This wraps the logic that converts CR2 images to something Qt can understand.
+    QPixmap loadPhoto(QString path) const;
 
     Ui::Widget *ui;
 

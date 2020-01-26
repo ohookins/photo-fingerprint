@@ -6,6 +6,9 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QTime>
+#include <QTemporaryFile>
+#include <QProcess>
+#include <QProcessEnvironment>
 #include <QDebug>
 
 Widget::Widget(QWidget *parent)
@@ -97,8 +100,8 @@ void Widget::loadNextPair()
     }
 
     // Try to load the images and hope they are understandable by Qt
-    QPixmap leftImage(leftPath);
-    QPixmap rightImage(rightPath);
+    QPixmap leftImage = loadPhoto(leftPath);
+    QPixmap rightImage = loadPhoto(rightPath);
 
     // Display some metadata about the files to help in delete selection
     displayPhotoMetadata(leftPath, leftImage, rightPath, rightImage);
@@ -133,6 +136,39 @@ void Widget::displayPhotoMetadata(QString leftFilename, QPixmap left, QString ri
     // file resolutions
     ui->leftResolutionLineEdit->setText(QString("%1 x %2").arg(left.size().width()).arg(left.size().height()));
     ui->rightResolutionLineEdit->setText(QString("%1 x %2").arg(right.size().width()).arg(right.size().height()));
+}
+
+QPixmap Widget::loadPhoto(QString path) const
+{
+    // Everything but CR2 raw format
+    if (!path.endsWith(".CR2", Qt::CaseInsensitive)) {
+        return QPixmap(path);
+    }
+    qDebug() << "Attempting to convert to jpg: " << path;
+
+    // Create a temporary filename to convert to
+    QTemporaryFile tempFile;
+    tempFile.setFileTemplate(tempFile.fileTemplate().append(".jpg"));
+    tempFile.open(); // tempfile name is only created here
+    tempFile.close(); // close as we don't need to write to it directly
+    QString command = QString("/usr/local/bin/convert %1 %2").arg(path).arg(tempFile.fileName());
+
+    // Run the conversion process.
+    // Need to add /usr/local/bin to the environment of the app so that
+    // image conversation utilities can be found later.
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("PATH", "/usr/local/bin");
+    QProcess process;
+    process.setProcessEnvironment(env);
+    qDebug() << "Running: " << command;
+    process.start(command);
+    if (!process.waitForFinished()) {
+        qDebug() << "Command did not finish successfully";
+    }
+
+    // Tempfile should now contain the converted image. It will be cleaned up on
+    // the destructor of the QTemporaryFile object.
+    return QPixmap(tempFile.fileName());
 }
 
 void Widget::on_skipButton_clicked()
