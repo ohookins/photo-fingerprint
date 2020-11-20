@@ -1,4 +1,4 @@
-= photo-fingerprint =
+# photo-fingerprint
 
 Extremely naive attempt to find duplicate images, from one smaller set to a
 larger set of images (required, as all of the "fingerprints" need to fit in
@@ -7,21 +7,21 @@ memory currently).
 Very similar to the thumbnail compare methology listed here:
 http://www.imagemagick.org/Usage/compare/#methods
 
-== Pre-requisites ==
+## Pre-requisites
 
 * cmake 3.11+
 * ImageMagick 7 installed from Homebrew
 * ufraw installed from Homebrew (for converting CR2 files)
 * boost installed from Homebrew
 
-== Compiling == 
+## Compiling
 
 ```
 cmake .
 make
 ```
 
-== Running ==
+## Running
 
 There are several modes:
 * generate fingerprints (`-g`)
@@ -40,7 +40,7 @@ For duplicate finding, you can set the "fuzz factor" (distance between two colou
 to treat them as the same colour) with `-u`. I'm still not certain what the units are
 exactly.
 
-=== Examples ===
+### Examples
 
 Generate some fingerprints. The destination directory must already exist.
 ```
@@ -52,7 +52,7 @@ Check the fingerprints against your corpus of images.
 ./photo-fingerprint -f -d ~/Photos/ -s ~/fingerprints/
 ```
 
-= Problems =
+# Problems
 
 There are numerous challenges with this approach to finding duplicates.
 * Differences in resolution, image format, colour space, colour depth,
